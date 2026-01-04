@@ -1,6 +1,7 @@
 import { User } from "../models/User.js";
 import { asyncHandler, ApiError, ApiResponse } from "../utils/utilBarrel.js";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { sendEmail } from "../mail/mailgen.js";
 import { isValidEmail, isValidPassword } from "../regex/regexRules.js";
 import { emailVerificationMailgenContent, forgotPasswordMailgenContent } from "../mail/mailgencontent.js";
@@ -129,14 +130,14 @@ export const login = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, opts)
-    .cookie("refreshToken", refreshToken, opts)
+    .cookie("accessToken", accessToken, { ...opts, maxAge: 15 * 60 * 1000 }) // 15 minutes
+    .cookie("refreshToken", refreshToken, { ...opts, maxAge: 7 * 24 * 60 * 60 * 1000 }) // 7 days
     .json(new ApiResponse(200, { user: loggedInUser }, "LOGGED IN"));
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
-  // req.user is already attached by verifyJwt middleware
-  return res.status(200).json({ success: true, user: req.user, message: "user verified" });
+  // req.user is already attached by verifyJwtOptional middleware (can be null)
+  return res.status(200).json(new ApiResponse(200, { user: req.user }, "User data retrieved"));
 });
 
 export const verifyEmail = asyncHandler(async (req, res) => {
@@ -328,4 +329,54 @@ export const changeUsername = asyncHandler(async (req, res) => {
   }
 
   return res.status(200).json(new ApiResponse(200, { user }, "Username updated successfully"));
+});
+
+export const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken = req.cookies.refreshToken || req.header("Authorization")?.replace("Bearer ", "");
+
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized - Refresh token missing");
+  }
+
+  try {
+    const decodedRefreshToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const user = await User.findById(decodedRefreshToken._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invalid Refresh Token - User not found");
+    }
+
+    // Check if the refresh token matches the one stored in DB
+    if (user.refreshToken !== incomingRefreshToken) {
+      throw new ApiError(401, "Refresh token has expired or has been revoked");
+    }
+
+    // Generate new access and refresh tokens
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+
+    const opts = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 15 * 60 * 1000, // 15 minutes for access token
+    };
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, opts)
+      .cookie("refreshToken", refreshToken, { ...opts, maxAge: 7 * 24 * 60 * 60 * 1000 }) // 7 days for refresh token
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken },
+          "Access token refreshed successfully"
+        )
+      );
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError(401, "Invalid Refresh Token");
+  }
 });

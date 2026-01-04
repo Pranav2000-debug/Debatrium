@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import { toast } from "react-hot-toast";
 import AnimatedModal from "@/components/ui/AnimatedModal";
 
@@ -29,7 +29,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
 
     try {
       setLoading(true);
-      await axios.post("/api/v1/users/update-password", { currentPassword, newPassword }, { withCredentials: true });
+      await api.post("/users/update-password", { currentPassword, newPassword });
 
       toast.success("Password updated successfully");
       resetState();

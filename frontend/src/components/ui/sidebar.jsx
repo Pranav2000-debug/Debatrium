@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import React, { useState, createContext, useContext } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconMenu2, IconX } from "@tabler/icons-react";
-
+import { Link } from "react-router-dom";
 const SidebarContext = createContext(undefined);
 
 export const useSidebar = () => {
@@ -88,7 +88,7 @@ export const MobileSidebar = ({ className, children, ...props }) => {
 export const SidebarLink = ({ link, className, ...props }) => {
   const { open, animate } = useSidebar();
   return (
-    <a href={link.href} className={cn("flex items-center justify-start gap-2  group/sidebar py-2", className)} {...props}>
+    <Link to={link.href} className={cn("flex items-center justify-start gap-2  group/sidebar py-2", className)} {...props}>
       {link.icon}
       <motion.span
         animate={{
@@ -98,6 +98,6 @@ export const SidebarLink = ({ link, className, ...props }) => {
         className="text-neutral-700 dark:text-neutral-200 text-sm group-hover/sidebar:translate-x-1 transition duration-150 whitespace-pre inline-block">
         {link.label}
       </motion.span>
-    </a>
+    </Link>
   );
 };

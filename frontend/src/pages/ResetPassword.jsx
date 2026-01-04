@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import { toast, Toaster } from "react-hot-toast";
 
 const ResetPassword = () => {
@@ -32,7 +32,7 @@ const ResetPassword = () => {
     try {
       setIsSubmitting(true);
 
-      await axios.post(`http://localhost:4000/api/v1/auth/reset-password/${resetPasswordToken}`, { newPassword: password }, { withCredentials: true });
+      await api.post(`/auth/reset-password/${resetPasswordToken}`, { newPassword: password });
 
       toast.success("Password updated successfully. Please log in.");
 

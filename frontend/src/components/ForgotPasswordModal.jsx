@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import { toast } from "react-hot-toast";
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => {
@@ -25,7 +25,7 @@ const ForgotPasswordModal = ({ isOpen, onClose }) => {
     try {
       setIsSubmitting(true);
 
-      await axios.post("http://localhost:4000/api/v1/auth/forgot-password", { email }, { withCredentials: true });
+      await api.post("/auth/forgot-password", { email });
       toast.success("If an account exists, a reset link has been sent to your email");
 
       setEmail("");

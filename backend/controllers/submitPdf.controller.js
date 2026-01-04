@@ -59,6 +59,10 @@ export const submitPdfToAI = asyncHandler(async (req, res) => {
   } catch (error) {
     pdf.status = "failed";
     await pdf.save();
+    
+    if (error?.status === 429 || error?.message?.toLowerCase().includes("quota") || error?.message?.toLowerCase().includes("rate")) {
+      throw new ApiError(429, "AI usage limit reached. Please try again later.");
+    }
 
     // preserve ApiError if already thrown
     if (error instanceof ApiError) {

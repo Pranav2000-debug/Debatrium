@@ -1,9 +1,7 @@
 import { useEffect, useState, useContext, createContext } from "react";
-import axios from "axios";
-
+import api from "../api/axiosCongfig.js";
 
 const AuthContext = createContext(null);
-
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,8 +9,8 @@ export const AuthProvider = ({ children }) => {
 
   const fetchMe = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/api/v1/users/me", { withCredentials: true });
-      setUser(res?.data?.user);
+      const res = await api.get("/users/me");
+      setUser(res?.data?.data?.user);
     } catch {
       setUser(null);
     } finally {
@@ -26,8 +24,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = async () => {
-    await axios.post("http://localhost:4000/api/v1/auth/logout", null, { withCredentials: true });
-    setUser(null);
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      // Proceed with logout even if request fails
+      console.error("Logout request failed:", error);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (
@@ -43,7 +47,6 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

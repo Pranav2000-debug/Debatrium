@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
@@ -38,7 +38,7 @@ const Login = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:4000/api/v1/auth/log-in", { email, password }, { withCredentials: true });
+      const res = await api.post("/auth/log-in", { email, password });
       toast.success("Login successful!");
       setUser(res?.data?.data?.user);
       await new Promise((r) => setTimeout(r, 800));

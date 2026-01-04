@@ -21,6 +21,11 @@ const pdfSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    contentHash: {
+      type: String,
+      required: true,
+      index: true,
+    },
 
     previewImageUrl: {
       type: String,
@@ -64,5 +69,8 @@ const pdfSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// to prevent duplicates.
+pdfSchema.index({ user: 1, contentHash: 1 }, { unique: true });
 
 export const Pdf = mongoose.model("Pdf", pdfSchema);

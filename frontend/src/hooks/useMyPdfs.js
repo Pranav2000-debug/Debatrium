@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import { handleApiError } from "@/utils/handleApiError";
 
 export function useMyPdfs() {
@@ -11,8 +11,7 @@ export function useMyPdfs() {
 
     const fetchPdfs = async () => {
       try {
-        const res = await axios.get("http://localhost:4000/api/v1/pdfs", {
-          withCredentials: true,
+        const res = await api.get("/pdfs", {
           signal: controller.signal,
         });
         // spoof loader

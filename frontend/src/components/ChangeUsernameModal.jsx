@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { handleApiError } from "@/utils/handleApiError";
@@ -29,7 +29,7 @@ const ChangeUsernameModal = ({ isOpen, onClose }) => {
     try {
       setLoading(true);
 
-      const res = await axios.post("/api/v1/users/update-username", { newUsername: username }, { withCredentials: true });
+      const res = await api.post("/users/update-username", { newUsername: username });
 
       toast.success("Username updated successfully");
       setUser(res.data.data.user);

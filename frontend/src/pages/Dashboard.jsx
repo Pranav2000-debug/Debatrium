@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import UploadCard from "../components/Dashboard/UploadCard";
 import PdfCard from "../components/Dashboard/PdfCard";
 import { handleApiError } from "@/utils/handleApiError";
@@ -37,7 +37,7 @@ function Dashboard() {
       setUploading(true);
       const formData = new FormData();
       formData.append("file", file);
-      const res = await axios.post("http://localhost:4000/api/v1/uploads/pdf", formData, { withCredentials: true });
+      const res = await api.post("/uploads/pdf", formData);
       const uploadData = res?.data?.data?.pdf;
       if (!uploadData) throw new Error("Invalid upload response");
       setPdfs((prev) => [...prev, uploadData]);
@@ -56,7 +56,7 @@ function Dashboard() {
     setPdfs((prev) => prev.filter((p) => p.publicId !== publicId));
 
     try {
-      await axios.delete(`http://localhost:4000/api/v1/uploads/pdf/${encodeURIComponent(publicId)}`, { withCredentials: true });
+      await api.delete(`/uploads/pdf/${encodeURIComponent(publicId)}`);
 
       toast.success("PDF deleted");
     } catch (err) {
@@ -71,14 +71,13 @@ function Dashboard() {
     // optimistic setting for now. no race conditions.
     setPdfs((prev) => prev.map((p) => (p._id === pdfId ? { ...p, status: "processing" } : p)));
     try {
-      const AIRes = await axios.post(`http://localhost:4000/api/v1/pdfs/${pdfId}/submit`, {}, { withCredentials: true });
+      const AIRes = await api.post(`/pdfs/${pdfId}/submit`, {});
       const updatedPdf = AIRes?.data?.data?.pdf;
       setPdfs((prev) => prev.map((p) => (p._id === updatedPdf._id ? updatedPdf : p)));
       toast.success("AI Debate generated");
     } catch (error) {
       // rollback on error
       setPdfs((prev) => prev.map((p) => (p._id === pdfId ? { ...p, status: "failed" } : p)));
-      toast.error(error.message);
       handleApiError(error);
     }
   };

@@ -1,5 +1,5 @@
 import { handleApiError } from "@/utils/handleApiError";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -10,7 +10,7 @@ function AiSummary() {
   useEffect(() => {
     const fetchPdf = async () => {
       try {
-        const res = await axios.get(`http://localhost:4000/api/v1/pdfs/${id}`, { withCredentials: true });
+        const res = await api.get(`/pdfs/${id}`);
 
         setSinglePdf(res.data.data.pdf);
       } catch (err) {
@@ -24,7 +24,7 @@ function AiSummary() {
   useEffect(() => {
     if (!id) return;
 
-    axios.patch(`http://localhost:4000/api/v1/pdfs/${id}/consume`, {}, { withCredentials: true }).catch(() => {
+    api.patch(`/pdfs/${id}/consume`, {}).catch(() => {
       // silent failure — cleanup is best-effort
     });
   }, [id]);

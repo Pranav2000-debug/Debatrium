@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef, useCallback } from "react";
-import axios from "axios";
+import api from "../api/axiosCongfig.js";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useUsernameAvailability } from "../hooks/usernameAvailibility";
@@ -80,7 +80,7 @@ const Signup = () => {
     // -------- API call --------
 
     try {
-      const res = await axios.post("http://localhost:4000/api/v1/auth/sign-up", { fullname, username, email, password }, { withCredentials: true });
+      const res = await api.post("/auth/sign-up", { fullname, username, email, password });
       toast.success("Signup successful! Please verify your email.");
       navigate("/login");
     } catch (error) {
