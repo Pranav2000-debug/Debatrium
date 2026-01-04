@@ -1,0 +1,135 @@
+PHASE 1 — Document-aware Debate Coaching (DO THIS FIRST)
+What :-
+Let users work with the AI on their own debate:
+“Help me improve weakness #2”
+“Strengthen my opening”
+“Rewrite this paragraph more formally”
+“Give me a rebuttal to this criticism”
+This is not RAG.
+This is context-aware prompting.
+Uses what you already have (PDF + analysis)
+Immediate SaaS value
+Feels like a “debate coach”
+No infra complexity
+No hallucination risk
+
+REQUIREMENT: 
+✅ Extracted & sanitized document text
+✅ AI analysis output (strengths/weaknesses)
+➕ Chunking (to fit context window)
+➕ A “document-aware chat” prompt
+What NOT needed:
+❌ Vector DB
+❌ Embeddings
+❌ RAG
+
+
+PHASE 2 — Chunking (ENABLES PHASE 1)
+What
+Split the PDF text into manageable chunks so the AI:
+Sees relevant parts only
+Stays within token limits
+Gives focused answers
+
+Why:
+Long PDFs won’t fit in one prompt
+Refinements need local context
+Chunking = control
+
+Requirements:
+Chunk size: 800–1200 tokens
+Overlap: 150–200 tokens
+
+Store:
+
+{
+  pdfId,
+  chunkIndex,
+  text
+}
+
+What NOT needed
+❌ Embeddings
+❌ Semantic search
+manually select relevant chunks based on the weakness/topic.
+
+
+PHASE 3 — External “Relevant Resources” (OPTIONAL NEXT)
+What
+
+Show articles / reports / studies related to the debate topic.
+
+Why
+
+Improves credibility
+
+Helps users research
+
+Complements debate prep
+
+Requirements
+
+Detected topic (you already have this)
+
+Simple search API (news / scholarly)
+
+Ranking + display
+
+What NOT needed (initially)
+
+❌ RAG
+❌ Feeding articles back into AI
+
+Just show links.
+
+
+PHASE 4 — True RAG (DO LATER)
+What
+
+Use embeddings + vector search so AI can:
+
+Answer questions grounded in documents
+
+Reference specific passages
+
+Compare across PDFs
+
+Why
+
+Cross-document reasoning
+
+Source-backed answers
+
+Memory across sessions
+
+Requirements
+
+Chunking (already done)
+
+Embeddings model
+
+Vector DB (Pinecone / Qdrant / etc.)
+
+Retrieval + citation logic
+
+
+👉 What to do FIRST
+
+PHASE 1 + PHASE 2 together
+
+Document-aware debate coaching using chunking
+
+This gives:
+
+Immediate product value
+
+Clean UX
+
+No infra pain
+
+One-line mental model
+
+Chunking = context control
+RAG = knowledge retrieval
+
+You need context control first.
