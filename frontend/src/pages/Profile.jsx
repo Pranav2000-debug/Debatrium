@@ -4,7 +4,7 @@ import ChangePasswordModal from "@/components/ChangePasswordModal";
 import ChangeUsernameModal from "@/components/ChangeUsernameModal";
 
 const Profile = () => {
-  const [showPasswordModal, setShowPasswordModal] = useState();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const { user } = useAuth();
   const capitalizeName = (name = "") =>

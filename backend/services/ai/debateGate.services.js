@@ -3,58 +3,66 @@ import { GoogleGenAI } from "@google/genai";
 import { loadPrompt } from "./utils/loadPrompt.js";
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+/**
+ * Safely parse Gemini JSON output
+ */
+function parseGeminiJson(rawResponse) {
+  try {
+    // Best case: pure JSON
+    return JSON.parse(rawResponse);
+  } catch {
+    // Fallback: extract first JSON object
+    const match = rawResponse.match(/\{[\s\S]*\}/);
+    if (!match) {
+      throw new ApiError(500, "No JSON object found in Gemini response");
+    }
+    return JSON.parse(match[0]);
+  }
+}
+
 export async function analyzeDebateSutaibility({ text }) {
+  if (!text || !text.trim()) {
+    throw new ApiError(400, "Empty text provided for debate analysis");
+  }
+
   const basePrompt = loadPrompt("debateAnalysis.prompt.txt");
   const finalPrompt = basePrompt.replace("{{TEXT}}", text);
-  // todo
-  try {
-    if (!text || !text.trim()) throw new ApiError(400, "Empty text provided for debate analysis");
 
+  try {
     const response = await genAI.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3-pro-preview",
       contents: finalPrompt,
       config: {
-        thinkingConfig: {
-          thinkingBudget: -1, // disabling chain of thought
-        },
+        thinkingConfig: { thinkingBudget: -1 },
       },
     });
+
     const rawResponse = response.text;
-    const cleanedRawResponse = rawResponse
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-    let parsedResponse;
-    try {
-      const jsonStart = cleanedRawResponse.indexOf("{");
-      const jsonEnd = cleanedRawResponse.lastIndexOf("}");
+    const parsed = parseGeminiJson(rawResponse);
 
-      if (jsonStart === -1 || jsonEnd === -1) {
-        throw new ApiError(500, "Gemini returned invalid output for debate gate");
-      }
+    // Normalize and validate schema (LLM-safe)
+    const confidence = Number(parsed.confidence);
 
-      parsedResponse = JSON.parse(cleanedRawResponse.slice(jsonStart, jsonEnd + 1));
-    } catch (error) {
-      throw new ApiError(500, "Gemini returned non-JSON output for debate gate");
-    }
-
-    // schema validation
     if (
-      typeof parsedResponse.isDebate !== "boolean" ||
-      typeof parsedResponse.confidence !== "number" ||
-      typeof parsedResponse.reason !== "string" ||
-      !("detectedTopic" in parsedResponse)
+      typeof parsed.isDebate !== "boolean" ||
+      Number.isNaN(confidence) ||
+      !("detectedTopic" in parsed) ||
+      (parsed.isDebate && typeof parsed.detectedTopic !== "string") ||
+      (!parsed.isDebate && parsed.detectedTopic !== null) ||
+      (parsed.reason !== null && typeof parsed.reason !== "string")
     ) {
-      throw new Error("Debate gate response schema mismatch");
+      throw new ApiError(500, "Debate gate response schema mismatch");
     }
+
     return {
-      isDebate: parsedResponse.isDebate,
-      confidence: parsedResponse.confidence,
-      reason: parsedResponse.reason,
-      detectedTopic: parsedResponse.detectedTopic ?? null,
+      isDebate: parsed.isDebate,
+      confidence,
+      reason: parsed.reason,
+      detectedTopic: parsed.detectedTopic ?? null,
     };
   } catch (error) {
-    console.log("Gemini debate gate error!!", error);
+    console.error("Gemini debate gate error:", error?.message || error);
+    if (error instanceof ApiError) throw error;
     throw new ApiError(500, "Debate suitability analysis failed");
   }
 }
