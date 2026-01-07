@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api/axiosCongfig.js";
+import api from "../api/axiosConfig.js";
 import { toast } from "react-hot-toast";
 import AnimatedModal from "@/components/ui/AnimatedModal";
 

@@ -97,7 +97,7 @@ export const login = asyncHandler(async (req, res) => {
       throw new ApiError(403, "Please verify your email. Check your inbox for the verification link.");
     }
 
-    // token missing or expired → regenerate
+    // token missing or expired -> regenerate
     const { unHashedToken, hashedToken, tokenExpiry } = user.generateTemporaryToken();
 
     // update tokens and resend email

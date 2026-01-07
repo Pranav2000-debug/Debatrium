@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api/axiosCongfig.js";
+import api from "../api/axiosConfig.js";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { handleApiError } from "@/utils/handleApiError";

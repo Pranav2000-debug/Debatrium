@@ -3,7 +3,6 @@ import rateLimit from "express-rate-limit";
 /**
  * Global limiter
  * - Protects infra
- * - Should NEVER block normal users
  */
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -64,7 +63,6 @@ export const signupLimiter = rateLimit({
 /**
  * Verify email limiter
  * - Low abuse risk
- * - Token already hard to guess
  */
 export const verifyEmailLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -88,7 +86,7 @@ export const forgotPasswordLimiter = rateLimit({
 
 export const updateUsernameLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // very safe for prod
+  max: 3, //  safe for prod ?? ehh
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {

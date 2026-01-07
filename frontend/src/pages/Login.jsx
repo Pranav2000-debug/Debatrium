@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import api from "../api/axiosCongfig.js";
+import api from "../api/axiosConfig.js";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";

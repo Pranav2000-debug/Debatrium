@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import api from "../api/axiosCongfig.js";
+import api from "../api/axiosConfig.js";
 
 const DEBOUNCE_DELAY = 2000;
 
@@ -10,7 +10,7 @@ export function useUsernameAvailability() {
   const debounceTimerRef = useRef(null);
   const abortControllerRef = useRef(null);
 
-  // Pure API logic (no debounce)
+  // (no debounce)
   const checkUsernameAvailability = useCallback(async (username) => {
     // Abort previous request
     if (abortControllerRef.current) {

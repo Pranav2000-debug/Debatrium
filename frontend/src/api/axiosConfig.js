@@ -34,6 +34,14 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // List of endpoints that should NOT trigger token refresh on 401
+    const skipRefreshEndpoints = ["/auth/log-in", "/auth/signup", "/auth/forgot-password", "/auth/reset-password"];
+
+    // If the request is to an auth endpoint, just reject and let UI handle
+    if (error.response?.status === 401 && skipRefreshEndpoints.some((endpoint) => originalRequest.url?.includes(endpoint))) {
+      return Promise.reject(error);
+    }
+
     // Only retry once and only for 401 errors
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -56,6 +64,7 @@ api.interceptors.response.use(
         // Call refresh token endpoint
         const response = await axios.post(`${BASE_URL}/users/refresh-token`, null, {
           withCredentials: true,
+          timeout: 5000,
         });
 
         const { accessToken } = response.data?.data || {};

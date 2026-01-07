@@ -1,5 +1,5 @@
 import { handleApiError } from "@/utils/handleApiError";
-import api from "../api/axiosCongfig.js";
+import api from "../api/axiosConfig.js";
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -8,16 +8,24 @@ function AiSummary() {
   const [singlePdf, setSinglePdf] = useState(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchPdf = async () => {
       try {
-        const res = await api.get(`/pdfs/${id}`);
-
+        const res = await api.get(`/pdfs/${id}`,
+          { signal: controller.signal }
+        );
         setSinglePdf(res.data.data.pdf);
       } catch (err) {
-        handleApiError(err);
+        // Only handle error if not aborted
+        if (err.name !== "CanceledError" && err.name !== "AbortError") {
+          handleApiError(err);
+        }
       }
     };
     fetchPdf();
+    return () => {
+      controller.abort();
+    };
   }, [id]);
 
   // fire and forget call

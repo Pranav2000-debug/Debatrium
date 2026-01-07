@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import api from "../api/axiosCongfig.js";
+import api from "../api/axiosConfig.js";
 import UploadCard from "../components/Dashboard/UploadCard";
 import PdfCard from "../components/Dashboard/PdfCard";
 import { handleApiError } from "@/utils/handleApiError";

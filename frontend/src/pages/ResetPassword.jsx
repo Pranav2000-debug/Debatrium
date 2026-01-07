@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import api from "../api/axiosCongfig.js";
+import api from "../api/axiosConfig.js";
 import { toast, Toaster } from "react-hot-toast";
 
 const ResetPassword = () => {

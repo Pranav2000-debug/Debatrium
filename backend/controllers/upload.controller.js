@@ -94,9 +94,8 @@ export const uploadPdfController = asyncHandler(async (req, res) => {
   return res.status(201).json(new ApiResponse(201, { pdf: pdfDoc }, "Upload successful"));
 });
 
-// ==============================
+
 // DELETE PDF CONTROLLER
-// ==============================
 export const deletePdf = asyncHandler(async (req, res) => {
   const publicId = decodeURIComponent(req.params.publicId);
 
