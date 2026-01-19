@@ -25,21 +25,7 @@ const generateAccessAndRefreshToken = async (userId) => {
 
 export const signup = asyncHandler(async (req, res) => {
   const { fullname, username, email, password } = req.body;
-  if ([fullname, username, email, password].some((field) => !field || field?.trim() === "")) {
-    throw new ApiError(400, "All fields are required to be filled.");
-  }
-  if (typeof fullname !== "string" || typeof email !== "string" || typeof password !== "string" || typeof username !== "string") {
-    throw new ApiError(400, "Invalid input type");
-  }
-
-  if (!isValidEmail(email)) {
-    throw new ApiError(400, "Invalid email format");
-  }
-
-  if (!isValidPassword(password)) {
-    throw new ApiError(400, "Password must be at least 8 characters long and include uppercase, lowercase, and a special character");
-  }
-
+  
   if (await User.findOne({ $or: [{ email: email.toLocaleLowerCase().trim() }, { username: username.toLocaleLowerCase().trim() }] }))
     throw new ApiError(409, "User with email or username already exists!");
 

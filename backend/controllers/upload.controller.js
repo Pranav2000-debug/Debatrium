@@ -6,6 +6,8 @@ import { Pdf } from "../models/pdf.model.js";
 import { ApiError, ApiResponse, asyncHandler } from "../utils/utilBarrel.js";
 import { extractPdfText } from "../utils/extractPdfText.js";
 import { sanitizeExtractedText } from "../utils/sanitizeExtractedText.js";
+import { PdfChunk } from "../models/pdfChunk.model.js";
+import { chunkText } from "../utils/chunkText.js";
 
 /**
  * Safely delete local uploaded file (disk storage cleanup)
@@ -71,8 +73,22 @@ export const uploadPdfController = asyncHandler(async (req, res) => {
   let pdfDoc;
   try {
     pdfDoc = await Pdf.create(uploadDetails);
+    const chunks = chunkText(extractedText);
+    await PdfChunk.insertMany(
+      chunks.map((chunk) => ({
+        pdf: pdfDoc._id,
+        user: req.user._id,
+        index: chunk.index,
+        text: chunk.text,
+        tokenCount: 0, // to be filled later via Gemini countTokens
+      }))
+    );
   } catch (err) {
     // DB duplicate enforce code check
+    if (pdfDoc?._id) {
+      await Pdf.deleteOne({ _id: pdfDoc._id });
+      await PdfChunk.deleteMany({ pdf: pdfDoc._id });
+    }
     if (err.code === 11000) {
       await cloudinary.uploader.destroy(cloudinaryResult.public_id, {
         resource_type: "image",
@@ -93,7 +109,6 @@ export const uploadPdfController = asyncHandler(async (req, res) => {
 
   return res.status(201).json(new ApiResponse(201, { pdf: pdfDoc }, "Upload successful"));
 });
-
 
 // DELETE PDF CONTROLLER
 export const deletePdf = asyncHandler(async (req, res) => {
