@@ -23,6 +23,7 @@
     "express-rate-limit": "^8.2.1",
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.2",
+    "madge": "^8.0.0",
     "mailgen": "^2.0.32",
     "mongoose": "^8.18.0",
     "multer": "^2.0.2",
