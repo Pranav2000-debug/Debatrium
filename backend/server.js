@@ -28,11 +28,13 @@ async function gracefulShutdown(signal) {
   console.log(`\n ${signal} received. Shutting down gracefully...`);
 
   // Close server first (stop accepting new requests)
-  if (server) {
+  await new Promise((res, rej) => {
     server.close(() => {
-      console.log("HTTP server closed");
-    });
-  }
+      if(err) return rej(err);
+      console.log("HTTP server closed")
+      res();
+    })
+  })
 
   try {
     // Close Redis connection

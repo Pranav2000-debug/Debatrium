@@ -9,14 +9,13 @@ const authRouter = express.Router();
 
 // public
 // user auth related routes
-authRouter.post("/sign-up", validate(signupSchema()),signupLimiter, signup);
-authRouter.post("/log-in", loginLimiter ,login);
-authRouter.get("/verify-email/:verificationToken", verifyEmailLimiter ,verifyEmail);
+authRouter.post("/sign-up", signupLimiter, validate(signupSchema()), signup);
+authRouter.post("/log-in", loginLimiter, login);
+authRouter.get("/verify-email/:verificationToken", verifyEmailLimiter, verifyEmail);
 authRouter.get("/check-availability", usernameCheckLimiter, checkAvailability);
 // user auth password related routes
-authRouter.post("/forgot-password", forgotPasswordLimiter, forgotPaswordRequest )
+authRouter.post("/forgot-password", forgotPasswordLimiter, forgotPaswordRequest);
 authRouter.post("/reset-password/:resetPasswordToken", resetPassword);
-
 
 // protected routes
 authRouter.post("/logout", verifyJwt, logout);

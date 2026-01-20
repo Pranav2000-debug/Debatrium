@@ -24,8 +24,9 @@ const Signup = () => {
     if (name === "username") {
       const trimmed = value.trim();
 
-      if (trimmed.length <= 4) {
+      if (trimmed.length < 4) {
         reset();
+        return;
       }
       checkUsername(trimmed);
     }
@@ -54,7 +55,7 @@ const Signup = () => {
     }
 
     // username: basic length check (backend will enforce uniqueness)
-    if (username.length <= 4) {
+    if (username.length < 4) {
       toast.error("Username must be at least 4 characters.");
       setIsSubmitting(false);
       return;
