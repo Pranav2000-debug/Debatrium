@@ -27,16 +27,16 @@ connectDB()
 async function gracefulShutdown(signal) {
   console.log(`\n ${signal} received. Shutting down gracefully...`);
 
-  // Close server first (stop accepting new requests)
-  await new Promise((res, rej) => {
-    server.close(() => {
-      if(err) return rej(err);
-      console.log("HTTP server closed")
-      res();
-    })
-  })
-
   try {
+    // Close server first (stop accepting new requests)
+    await new Promise((res, rej) => {
+      server.close((err) => {
+        if (err) return rej(err);
+        console.log("HTTP server closed");
+        res();
+      });
+    });
+    
     // Close Redis connection
     await redisClient.disconnect();
     console.log("Redis connection closed");
