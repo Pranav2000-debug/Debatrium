@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 
 const pdfSchema = new mongoose.Schema(
   {
-    // Owner
+    // ======================
+    // Ownership
+    // ======================
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -10,7 +12,9 @@ const pdfSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Cloudinary
+    // ======================
+    // Storage (Cloudinary)
+    // ======================
     publicId: {
       type: String,
       required: true,
@@ -21,18 +25,15 @@ const pdfSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    contentHash: {
-      type: String,
-      required: true,
-      index: true,
-    },
 
     previewImageUrl: {
       type: String,
       required: true,
     },
 
+    // ======================
     // Metadata
+    // ======================
     originalName: {
       type: String,
       required: true,
@@ -43,23 +44,44 @@ const pdfSchema = new mongoose.Schema(
       required: true,
     },
 
-    status: {
+    // ======================
+    // Preprocessing (system-owned)
+    // ======================
+    preprocessStatus: {
       type: String,
-      enum: ["uploaded", "processing", "completed", "failed"],
-      default: "uploaded",
+      enum: ["pending", "processing", "completed", "failed"],
+      default: "pending",
+      index: true,
     },
-    isConsumed: {
-      type: Boolean,
-      default: false,
+
+    contentHash: {
+      type: String,
+      default: null, // computed during preprocessing
       index: true,
     },
 
     extractedText: {
       type: String,
       default: null,
-      select: false,
+      select: false, // never send full text accidentally
     },
-    // AI output (future)
+
+    // ======================
+    // AI lifecycle (user-triggered)
+    // ======================
+    status: {
+      type: String,
+      enum: ["idle", "processing", "completed", "failed"],
+      default: "idle",
+      index: true,
+    },
+
+    isConsumed: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
     aiResult: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
@@ -67,10 +89,22 @@ const pdfSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-// to prevent duplicates.
-pdfSchema.index({ user: 1, contentHash: 1 }, { unique: true });
+// ======================
+// Uniqueness constraints
+// ======================
+
+// Prevent duplicate PDFs per user (semantic duplicate)
+// sparse: true - avoids uniqueness issues before hash exists. only enfore uniqueness when the value exists.
+pdfSchema.index({ user: 1, contentHash: 1 }, { unique: true, sparse: true });
 
 export const Pdf = mongoose.model("Pdf", pdfSchema);
+
+/**
+ * uploading - frontend-only UI state (spinner, disable clicks)
+ * preprocessStatus - backend readiness (chunks/text prepared)
+ * status: "idle" - AI has not been started yet
+ * 
+ */

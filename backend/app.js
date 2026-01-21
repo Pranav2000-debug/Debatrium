@@ -18,12 +18,12 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "DELETE", "OPTIONS", "PATCH", "PUT"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
-app.use(express.json());
+
+app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
-
 
 // routes (API ENDPOINTS)
 
@@ -34,7 +34,6 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter); // user dashboard protected routes
 app.use("/api/v1/uploads", uploadRouter); // for uploading/deleting to/from cloud and db
 app.use("/api/v1/pdfs", pdfRouter); // all pdf handling related routes
-
 
 
 app.use(errorHandler);
