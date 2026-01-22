@@ -9,9 +9,15 @@ const port = process.env.PORT || 8080;
 
 const redisClient = RedisClient.getInstance();
 let server;
+let pdfPreprocessWorker; // Store worker reference for graceful shutdown
 
 connectDB()
-  .then(() => {
+  .then(async () => {
+    // Import worker AFTER MongoDB connects (starts automatically)
+    // This ensures DB is ready before worker processes jobs
+    const workerModule = await import("./workers/pdfPreprocess.worker.js");
+    pdfPreprocessWorker = workerModule.pdfPreprocessWorker;
+
     server = app.listen(port, () => {
       console.log(`Server running on http://localhost:${port}`);
       console.log(`Redis initialized`);
@@ -36,7 +42,18 @@ async function gracefulShutdown(signal) {
         res();
       });
     });
-    
+
+    // Close BullMQ worker (waits for current job to finish)
+    if (pdfPreprocessWorker) {
+      await pdfPreprocessWorker.close();
+      console.log("PDF preprocessing worker closed");
+    }
+
+    // Close BullMQ queue
+    const { pdfPreprocessQueue } = await import("./queues/pdfPreprocess.queue.js");
+    await pdfPreprocessQueue.close();
+    console.log("PDF preprocessing queue closed");
+
     // Close Redis connection
     await redisClient.disconnect();
     console.log("Redis connection closed");
@@ -45,7 +62,7 @@ async function gracefulShutdown(signal) {
     await mongoose.connection.close();
     console.log("MongoDB connection closed");
 
-    console.log("Sleeping");
+    console.log("Shutdown complete");
     process.exit(0);
   } catch (error) {
     console.error("Error during shutdown:", error);

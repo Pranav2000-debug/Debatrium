@@ -1,19 +1,24 @@
-import fs from "fs";
 import { PDFParse } from "pdf-parse";
 
-export async function extractPdfText(filePath) {
-  if (!filePath || typeof filePath !== "string") {
-    throw new Error("Invalid PDF path, could not extract");
+/**
+ * Extract text from a PDF buffer.
+ * 
+ * STRICT CONTRACT:
+ * - Only accepts Buffer input (from downloadPdfBuffer)
+ * - No file path support (controllers no longer extract text)
+ * - All extraction happens in workers, which download PDFs as Buffers
+ * 
+ * @param {Buffer} pdfBuffer - PDF file as Buffer
+ * @returns {Promise<string>} Extracted text
+ * @throws {Error} If input is not a Buffer
+ */
+export async function extractPdfText(pdfBuffer) {
+  // Enforce strict Buffer-only contract
+  if (!Buffer.isBuffer(pdfBuffer)) {
+    throw new Error("extractPdfText: expected Buffer input, received " + typeof pdfBuffer);
   }
 
-  // Read file from disk into buffer
-  const buffer = fs.readFileSync(filePath);
-
-  if (!Buffer.isBuffer(buffer)) {
-    throw new Error("Failed to read PDF file as buffer");
-  }
-
-  const data = new PDFParse({ data: buffer });
+  const data = new PDFParse({ data: pdfBuffer });
   const result = await data.getText();
 
   return result.text || "";

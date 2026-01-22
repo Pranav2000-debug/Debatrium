@@ -40,7 +40,7 @@ const pdfChunkSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-// for a given pdf, no to chunks can have the same index
+// for a given pdf, no two chunks can have the same index
 pdfChunkSchema.index({ pdf: 1, index: 1 }, { unique: true });
 
 export const PdfChunk = mongoose.model("PdfChunk", pdfChunkSchema);
