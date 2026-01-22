@@ -62,3 +62,29 @@ export const markPdfAsConsumed = asyncHandler(async (req, res) => {
 
   return res.status(200).json(new ApiResponse(200, null, "PDF marked as consumed"));
 });
+
+/**
+ * Get PDF status for polling.
+ * Lightweight endpoint - returns only status fields.
+ * Optimized for frequent polling without overloading DB.
+ */
+export const getPdfStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Select only status fields for minimal DB load
+  const pdf = await Pdf.findOne(
+    { _id: id, user: req.user._id },
+    { preprocessStatus: 1, status: 1 }
+  ).lean();
+
+  if (!pdf) {
+    throw new ApiError(404, "PDF not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      preprocessStatus: pdf.preprocessStatus,
+      status: pdf.status,
+    }, "Status fetched")
+  );
+});

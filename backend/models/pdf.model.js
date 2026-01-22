@@ -49,7 +49,7 @@ const pdfSchema = new mongoose.Schema(
     // ======================
     preprocessStatus: {
       type: String,
-      enum: ["pending", "processing", "completed", "failed"],
+      enum: ["pending", "processing", "completed", "failed", "deleting"],
       default: "pending",
       index: true,
     },

@@ -164,10 +164,16 @@ async function processPdfPreprocess(job) {
     const chunks = chunkText(extractedText, { chunkSize: 1200, overlap: 250 });
 
     if (chunks.length > 0) {
-      const pdfStillExists = await Pdf.exists({ _id: pdfId });
-      if (!pdfStillExists) {
+      // Re-check PDF status before inserting chunks
+      // Abort if PDF was deleted or marked for deletion during processing
+      const pdfCheck = await Pdf.findById(pdfId).select("preprocessStatus").lean();
+      if (!pdfCheck) {
         console.log(`PDF deleted during processing: ${pdfId} - aborting chunk creation`);
         return permanentFailure("pdf_deleted_during_processing");
+      }
+      if (pdfCheck.preprocessStatus === "deleting") {
+        console.log(`PDF marked for deletion: ${pdfId} - aborting chunk creation`);
+        return permanentFailure("pdf_deletion_in_progress");
       }
 
       await PdfChunk.insertMany(
@@ -222,12 +228,34 @@ const pdfPreprocessWorker = new Worker(
   { connection: workerConnection, concurrency: 2 }
 );
 
-pdfPreprocessWorker.on("completed", (job, result) => {
+pdfPreprocessWorker.on("completed", async (job, result) => {
   console.log(`Job ${job.id} completed:`, result);
+
+  // Cleanup orphan chunks if:
+  // 1. PDF was marked for deletion ("deleting") during processing
+  // 2. PDF was fully deleted (null) before worker completed - handles milliseconds race condition
+  const pdfId = job.data?.pdfId;
+  if (pdfId) {
+    const pdf = await Pdf.findById(pdfId).select("preprocessStatus").lean();
+    if (!pdf || pdf.preprocessStatus === "deleting") {
+      console.log(`PDF ${pdfId} deleted or marked for deletion - cleaning up orphan chunks`);
+      await PdfChunk.deleteMany({ pdf: pdfId });
+    }
+  }
 });
 
-pdfPreprocessWorker.on("failed", (job, err) => {
+pdfPreprocessWorker.on("failed", async (job, err) => {
   console.error(`Job ${job?.id} failed:`, err.message);
+
+  // Mark as failed in DB only after all retries are exhausted
+  const maxAttempts = job?.opts?.attempts ?? 0;
+  if (job && job.attemptsMade >= maxAttempts) {
+    console.error(`Job ${job.id} exhausted all ${maxAttempts} retries - marking as failed`);
+    const pdfId = job.data?.pdfId;
+    if (pdfId) {
+      await markAsFailed(pdfId);
+    }
+  }
 });
 
 pdfPreprocessWorker.on("progress", (job, progress) => {

@@ -117,6 +117,15 @@ export const deletePdf = asyncHandler(async (req, res) => {
   }
 
   // ========================================
+  // Set deletion marker BEFORE job removal
+  // This signals the worker to abort chunk inserts if still processing
+  // ========================================
+  await Pdf.updateOne(
+    { _id: pdf._id },
+    { $set: { preprocessStatus: "deleting" } }
+  );
+
+  // ========================================
   // Best-effort job removal from queue
   // ========================================
   try {
