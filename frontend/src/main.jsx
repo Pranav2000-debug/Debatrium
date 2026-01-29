@@ -4,7 +4,7 @@ import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route } 
 import "./index.css";
 
 import Layout from "./Layout";
-import Home from "./pages/Home";
+// Home is also lazy-loaded for better initial bundle size
 import { AuthProvider } from "./context/AuthContext";
 import PublicOnlyRoutes from "./routes/PublicOnlyRoutes";
 import ProtectedRoutes from "./routes/ProtectedRoutes";
@@ -20,6 +20,7 @@ const Signup = lazy(() => import("./pages/SignUp"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AiSummary = lazy(() => import("./pages/AiSummary"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Home = lazy(() => import("./pages/Home"));
 
 // Suspense fallback for lazy-loaded pages
 const PageLoader = () => (
@@ -33,7 +34,7 @@ const router = createBrowserRouter(
     <>
       {/* PUBLIC LAYOUT */}
       <Route element={<Layout />}>
-        <Route index element={<Home />} />
+        <Route index element={<Suspense fallback={<PageLoader />}><Home /></Suspense>} />
         <Route path="about" element={<Suspense fallback={<PageLoader />}><AboutUs /></Suspense>} />
         <Route path="reset-password/:resetPasswordToken" element={<Suspense fallback={<PageLoader />}><ResetPassword /></Suspense>} />
 
