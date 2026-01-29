@@ -23,21 +23,21 @@ export const getMyPdfs = asyncHandler(async (req, res) => {
       _id: { $in: toCleanup.map((p) => p._id) },
     });
   }
-  // then return all correct ones (only fields needed for dashboard)
+  // Return only fields needed for frontend (no _id exposed)
   const pdfs = await Pdf.find({ user: userId })
-    .select("_id publicId previewImageUrl originalName size createdAt preprocessStatus status")
+    .select("-_id publicId previewImageUrl originalName size createdAt preprocessStatus status")
     .sort({ createdAt: -1 });
   return res.status(200).json(new ApiResponse(200, { pdfs }, "PDFs fetched"));
 });
 
 // get single pdf for summary page
 export const getSinglePdf = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { publicId } = req.params;
 
   const pdf = await Pdf.findOne({
-    _id: id,
+    publicId: decodeURIComponent(publicId),
     user: req.user._id,
-  });
+  }).select("-_id publicId originalName pdfUrl aiResult");
 
   if (!pdf) throw new ApiError(404, "PDF not found");
 
@@ -46,10 +46,10 @@ export const getSinglePdf = asyncHandler(async (req, res) => {
 
 // to mark as consumed. cleanup db controller
 export const markPdfAsConsumed = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { publicId } = req.params;
 
   const pdf = await Pdf.findOne({
-    _id: id,
+    publicId: decodeURIComponent(publicId),
     user: req.user._id,
   });
 
@@ -71,11 +71,11 @@ export const markPdfAsConsumed = asyncHandler(async (req, res) => {
  * Optimized for frequent polling without overloading DB.
  */
 export const getPdfStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { publicId } = req.params;
 
   // Select only status fields for minimal DB load
   const pdf = await Pdf.findOne(
-    { _id: id, user: req.user._id },
+    { publicId: decodeURIComponent(publicId), user: req.user._id },
     { preprocessStatus: 1, status: 1 }
   ).lean();
 

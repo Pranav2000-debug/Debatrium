@@ -3,11 +3,25 @@ import { analyzeDebateSutaibility } from "../services/ai/debateGate.services.js"
 import { generateDebateAnalysis } from "../services/ai/gemini.services.js";
 import { ApiResponse, ApiError, asyncHandler } from "../utils/utilBarrel.js";
 
+/**
+ * Helper to return only safe fields for Dashboard
+ * (matches upload and getMyPdfs response format)
+ */
+const safePdfResponse = (pdf) => ({
+  publicId: pdf.publicId,
+  previewImageUrl: pdf.previewImageUrl,
+  originalName: pdf.originalName,
+  size: pdf.size,
+  createdAt: pdf.createdAt,
+  preprocessStatus: pdf.preprocessStatus,
+  status: pdf.status,
+});
+
 export const submitPdfToAI = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { publicId } = req.params;
 
   const pdf = await Pdf.findOne({
-    _id: id,
+    publicId: decodeURIComponent(publicId),
     user: req.user._id,
   }).select("+extractedText");
 
@@ -36,7 +50,7 @@ export const submitPdfToAI = asyncHandler(async (req, res) => {
       pdf.status = "completed";
       await pdf.save();
 
-      return res.status(200).json(new ApiResponse(200, { pdf }, "PDF is not suitable for debate"));
+      return res.status(200).json(new ApiResponse(200, { pdf: safePdfResponse(pdf) }, "PDF is not suitable for debate"));
     }
 
     // Debate-suitable → full analysis
@@ -55,11 +69,11 @@ export const submitPdfToAI = asyncHandler(async (req, res) => {
     pdf.status = "completed";
     await pdf.save();
 
-    return res.status(200).json(new ApiResponse(200, { pdf }, "AI processing completed"));
+    return res.status(200).json(new ApiResponse(200, { pdf: safePdfResponse(pdf) }, "AI processing completed"));
   } catch (error) {
     pdf.status = "failed";
     await pdf.save();
-    
+
     if (error?.status === 429 || error?.message?.toLowerCase().includes("quota") || error?.message?.toLowerCase().includes("rate")) {
       throw new ApiError(429, "AI usage limit reached. Please try again later.");
     }

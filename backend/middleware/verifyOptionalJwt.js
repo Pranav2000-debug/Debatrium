@@ -1,5 +1,5 @@
 import { User } from "../models/User.js";
-import { asyncHandler, ApiError } from "../utils/utilBarrel.js";
+import { asyncHandler } from "../utils/utilBarrel.js";
 import jwt from "jsonwebtoken";
 
 /**
@@ -18,7 +18,7 @@ export const verifyJwtOptional = asyncHandler(async (req, res, next) => {
 
   try {
     const decodedAccessToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await User.findById(decodedAccessToken._id).select("-refreshToken -emailVerificationToken -emailVerificationExpiry");
+    const user = await User.findById(decodedAccessToken._id).select("-_id -refreshToken -emailVerificationToken -emailVerificationExpiry");
     
     if (!user) {
       // Token is invalid, continue without user

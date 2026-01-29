@@ -84,8 +84,19 @@ export const uploadPdfController = asyncHandler(async (req, res) => {
 
   // Send response immediately - don't wait for Redis I/O
   // Order: Cloudinary upload - DB write - HTTP response - background enqueue
+  // Return only safe fields (matches getMyPdfs response format)
   res.status(201).json(
-    new ApiResponse(201, { pdf: pdfDoc }, "Upload successful, preprocessing started")
+    new ApiResponse(201, {
+      pdf: {
+        publicId: pdfDoc.publicId,
+        previewImageUrl: pdfDoc.previewImageUrl,
+        originalName: pdfDoc.originalName,
+        size: pdfDoc.size,
+        createdAt: pdfDoc.createdAt,
+        preprocessStatus: pdfDoc.preprocessStatus,
+        status: pdfDoc.status,
+      }
+    }, "Upload successful, preprocessing started")
   );
 
   // Fire-and-forget: enqueue in background
