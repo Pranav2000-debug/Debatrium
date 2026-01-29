@@ -4,17 +4,17 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 function AiSummary() {
-  const { id } = useParams();
+  const { publicId } = useParams();
   const [singlePdf, setSinglePdf] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
     const fetchPdf = async () => {
       try {
-        const res = await api.get(`/pdfs/${id}`,
+        const res = await api.get(`/pdfs/${encodeURIComponent(publicId)}`,
           { signal: controller.signal }
         );
-        setSinglePdf(res.data.data.pdf);
+        setSinglePdf(res?.data?.data?.pdf);
       } catch (err) {
         // Only handle error if not aborted
         if (err.name !== "CanceledError" && err.name !== "AbortError") {
@@ -26,16 +26,16 @@ function AiSummary() {
     return () => {
       controller.abort();
     };
-  }, [id]);
+  }, [publicId]);
 
   // fire and forget call
   useEffect(() => {
-    if (!id) return;
+    if (!publicId) return;
 
-    api.patch(`/pdfs/${id}/consume`, {}).catch(() => {
+    api.patch(`/pdfs/${encodeURIComponent(publicId)}/consume`, {}).catch(() => {
       // silent failure — cleanup is best-effort
     });
-  }, [id]);
+  }, [publicId]);
 
   const gate = singlePdf?.aiResult?.gate;
   const analysis = singlePdf?.aiResult?.analysis;

@@ -48,7 +48,7 @@ const router = createBrowserRouter(
         <Route element={<PdfProvider />}>
           <Route path="dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
-            <Route path="pdf/:id" element={<Suspense fallback={<PageLoader />}><AiSummary /></Suspense>}></Route>
+            <Route path="pdf/:publicId" element={<Suspense fallback={<PageLoader />}><AiSummary /></Suspense>}></Route>
             <Route path="profile" element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />
           </Route>
         </Route>

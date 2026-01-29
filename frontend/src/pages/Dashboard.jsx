@@ -71,23 +71,23 @@ function Dashboard() {
     }
   };
 
-  const handleSubmitToAI = async (pdfId) => {
+  const handleSubmitToAI = async (publicId) => {
     // Optimistic update - set AI status to processing
-    setPdfs((prev) => prev.map((p) => (p._id === pdfId ? { ...p, status: "processing" } : p)));
+    setPdfs((prev) => prev.map((p) => (p.publicId === publicId ? { ...p, status: "processing" } : p)));
     try {
-      const AIRes = await api.post(`/pdfs/${pdfId}/submit`, {});
+      const AIRes = await api.post(`/pdfs/${encodeURIComponent(publicId)}/submit`, {});
       const updatedPdf = AIRes?.data?.data?.pdf;
-      setPdfs((prev) => prev.map((p) => (p._id === updatedPdf._id ? updatedPdf : p)));
+      setPdfs((prev) => prev.map((p) => (p.publicId === updatedPdf.publicId ? updatedPdf : p)));
       toast.success("AI Debate generated");
     } catch (error) {
       // rollback on error
-      setPdfs((prev) => prev.map((p) => (p._id === pdfId ? { ...p, status: "failed" } : p)));
+      setPdfs((prev) => prev.map((p) => (p.publicId === publicId ? { ...p, status: "failed" } : p)));
       handleApiError(error);
     }
   };
 
-  const handleGoToDetails = (pdfId) => {
-    navigate(`/dashboard/pdf/${pdfId}`);
+  const handleGoToDetails = (publicId) => {
+    navigate(`/dashboard/pdf/${encodeURIComponent(publicId)}`);
   };
 
   return (
@@ -113,9 +113,9 @@ function Dashboard() {
             <PdfCard
               key={pdf.publicId}
               pdf={pdf}
-              onSubmit={() => handleSubmitToAI(pdf._id)}
+              onSubmit={() => handleSubmitToAI(pdf.publicId)}
               onDelete={() => handleDeletePdf(pdf.publicId)}
-              onDetails={() => handleGoToDetails(pdf._id)}
+              onDetails={() => handleGoToDetails(pdf.publicId)}
             />
           ))}
         </div>

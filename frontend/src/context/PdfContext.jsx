@@ -17,6 +17,7 @@ const POLL_INTERVAL_MS = 5000; // 5 seconds
  * - Upload/Delete/Submit update state directly (no refetch)
  * - Polls for preprocessing status updates (pending/processing → completed/failed)
  * - State clears on logout (provider unmounts with ProtectedRoutes)
+ * - Uses publicId (Cloudinary ID) for all operations instead of MongoDB _id
  */
 export function PdfProvider() {
   const [pdfs, setPdfs] = useState([]);
@@ -43,10 +44,10 @@ export function PdfProvider() {
     }
   }, [hasFetched]);
 
-  // Update a single PDF
-  const updatePdf = useCallback((pdfId, updates) => {
+  // Update a single PDF by publicId
+  const updatePdf = useCallback((publicId, updates) => {
     setPdfs((prev) =>
-      prev.map((p) => (p._id === pdfId ? { ...p, ...updates } : p))
+      prev.map((p) => (p.publicId === publicId ? { ...p, ...updates } : p))
     );
   }, []);
 
@@ -68,17 +69,17 @@ export function PdfProvider() {
 
       for (const pdf of pollingPdfs) {
         try {
-          const res = await api.get(`/pdfs/${pdf._id}/status`);
+          const res = await api.get(`/pdfs/${encodeURIComponent(pdf.publicId)}/status`);
           const { preprocessStatus, status } = res?.data?.data || {};
 
           // Only update if status changed
           if (preprocessStatus !== pdf.preprocessStatus || status !== pdf.status) {
-            updatePdf(pdf._id, { preprocessStatus, status });
+            updatePdf(pdf.publicId, { preprocessStatus, status });
           }
         } catch (err) {
           // If PDF was deleted (e.g., duplicate detected by worker), remove from state
           if (err.response?.status === 404) {
-            setPdfs((prev) => prev.filter((p) => p._id !== pdf._id));
+            setPdfs((prev) => prev.filter((p) => p.publicId !== pdf.publicId));
             toast.error("Duplicate PDF detected - removed");
           }
           // Other errors silently ignored (network issues, etc.)
@@ -117,4 +118,3 @@ export function usePdfs() {
   }
   return context;
 }
-
