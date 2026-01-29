@@ -36,6 +36,17 @@ function permanentFailure(reason) {
   return { status: "failed", reason };
 }
 
+
+/**
+ * Mark PDF as permanently failed.
+ */
+async function markAsFailed(pdfId) {
+  await Pdf.updateOne(
+    { _id: pdfId, preprocessStatus: { $ne: "completed" } },
+    { $set: { preprocessStatus: "failed" } }
+  );
+}
+
 /**
  * Main processor function for PDF preprocessing.
  */
@@ -212,15 +223,7 @@ async function processPdfPreprocess(job) {
   }
 }
 
-/**
- * Mark PDF as permanently failed.
- */
-async function markAsFailed(pdfId) {
-  await Pdf.updateOne(
-    { _id: pdfId, preprocessStatus: { $ne: "completed" } },
-    { $set: { preprocessStatus: "failed" } }
-  );
-}
+
 
 const pdfPreprocessWorker = new Worker(
   "pdf-preprocess",

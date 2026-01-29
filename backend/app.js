@@ -27,6 +27,9 @@ app.use(cookieParser());
 
 // routes (API ENDPOINTS)
 
+// Health check for Docker/load balancer
+app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
+
 // AUTH ROUTES (HAS A PROTECTED LOGOUT ROUTE)
 app.use("/api/v1/auth", authRouter);
 

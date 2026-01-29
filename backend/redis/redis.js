@@ -1,5 +1,9 @@
 import Redis from "ioredis";
 
+// Redis connection config from environment (Docker) or defaults (local dev)
+const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
+const REDIS_PORT = parseInt(process.env.REDIS_PORT, 10) || 6379;
+
 const PRIVATE_REDIS_KEY = Symbol("redis_class_key");
 export default class RedisClient {
   static #instance = null;
@@ -10,17 +14,17 @@ export default class RedisClient {
     if (RedisClient.#instance) throw new Error("Use RedisClient.getInstance()");
 
     this.#sharedWorkerClient = new Redis({
-      host: "127.0.0.1",
-      port: 6379,
+      host: REDIS_HOST,
+      port: REDIS_PORT,
       maxRetriesPerRequest: null, // Required for BullMQ
       enableReadyCheck: false,
     });
 
     this.#sharedWorkerClient.on("connect", () => {
-      console.log("Redis worker client connected");
+      console.log(`Redis worker client connected to ${REDIS_HOST}:${REDIS_PORT}`);
     });
-    this.#sharedWorkerClient.on("ready", () => { 
-      console.log("Redis workerclient ready");
+    this.#sharedWorkerClient.on("ready", () => {
+      console.log("Redis worker client ready");
     });
     this.#sharedWorkerClient.on("error", (err) => {
       console.error("❌ Redis error:", err.message);
@@ -44,11 +48,12 @@ export default class RedisClient {
   // BullMQ recommends separate connections for Queue and Worker
   createNewConnection() {
     return new Redis({
-      host: "127.0.0.1",
-      port: 6379,
+      host: REDIS_HOST,
+      port: REDIS_PORT,
       maxRetriesPerRequest: 1, // fail fast
     });
   }
+
   // Graceful shutdown
   async disconnect() {
     if (this.#sharedWorkerClient) {
@@ -57,3 +62,4 @@ export default class RedisClient {
     }
   }
 }
+

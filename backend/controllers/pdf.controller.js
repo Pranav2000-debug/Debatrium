@@ -23,8 +23,10 @@ export const getMyPdfs = asyncHandler(async (req, res) => {
       _id: { $in: toCleanup.map((p) => p._id) },
     });
   }
-  // then return all correct ones
-  const pdfs = await Pdf.find({ user: userId }).sort({ createdAt: -1 });
+  // then return all correct ones (only fields needed for dashboard)
+  const pdfs = await Pdf.find({ user: userId })
+    .select("_id publicId previewImageUrl originalName size createdAt preprocessStatus status")
+    .sort({ createdAt: -1 });
   return res.status(200).json(new ApiResponse(200, { pdfs }, "PDFs fetched"));
 });
 
