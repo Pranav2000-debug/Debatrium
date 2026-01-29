@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 
-const Hero = () => {
+const Hero = memo(function Hero() {
   return (
     <div
       className="w-full h-[80vh] bg-cover bg-center flex flex-col items-center justify-center text-center relative"
@@ -29,6 +30,6 @@ const Hero = () => {
       </div>
     </div>
   );
-};
+});
 
 export default Hero;  

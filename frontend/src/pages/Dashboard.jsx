@@ -1,18 +1,23 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import api from "../api/axiosConfig.js";
 import UploadCard from "../components/Dashboard/UploadCard";
 import PdfCard from "../components/Dashboard/PdfCard";
 import { handleApiError } from "@/utils/handleApiError";
 import { toast } from "react-hot-toast";
-import { useMyPdfs } from "../hooks/useMyPdfs";
+import { usePdfs } from "../context/PdfContext";
 import { useNavigate } from "react-router-dom";
 import { LoaderFive } from "@/components/ui/loader";
 
 function Dashboard() {
   const fileInputRef = useRef(null);
-  const { pdfs, setPdfs, loading } = useMyPdfs();
+  const { pdfs, setPdfs, loading, fetchPdfs } = usePdfs();
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
+
+  // Fetch PDFs on first Dashboard mount (skips if already fetched)
+  useEffect(() => {
+    fetchPdfs();
+  }, [fetchPdfs]);
 
   const handleCardClick = () => {
     if (!uploading) fileInputRef.current?.click();
@@ -67,8 +72,7 @@ function Dashboard() {
   };
 
   const handleSubmitToAI = async (pdfId) => {
-    // later change to background jobs and polls or use websocket
-    // optimistic setting for now. no race conditions.
+    // Optimistic update - set AI status to processing
     setPdfs((prev) => prev.map((p) => (p._id === pdfId ? { ...p, status: "processing" } : p)));
     try {
       const AIRes = await api.post(`/pdfs/${pdfId}/submit`, {});
