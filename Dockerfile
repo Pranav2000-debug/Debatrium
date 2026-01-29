@@ -1,46 +1,49 @@
-# -- multi stage single image setup --
+# Production Dockerfile - Backend Only
+# Nginx runs on host, not in container
+# 
+# Build: docker build -t debatrium-backend .
+# Run:   docker run -p 4000:4000 --env-file .env debatrium-backend
+#
+# For production with Redis:
+#   docker-compose up -d
 
-# ---------- FRONTEND BUILD ----------
+# ---------- BUILD STAGE ----------
+FROM node:22-alpine AS builder
 
-FROM node:22-alpine AS frontend-builder
+WORKDIR /app
 
-WORKDIR /app/frontend
-
-COPY frontend/package*.json ./
-RUN npm ci
-
-COPY frontend/ .
-RUN npm run build
-
-
-
-# ---------- BACKEND SETUP ----------
-FROM node:22-alpine AS backend-builder
-
-WORKDIR /app/backend
-
+# Install dependencies first (better layer caching)
 COPY backend/package*.json ./
-RUN npm ci --only-production
+RUN npm ci --only=production
 
+# Copy backend source
 COPY backend/ .
 
+# ---------- RUNTIME STAGE ----------
+FROM node:22-alpine AS runtime
 
+# Security: run as non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# ---------- FINAL RUNTIME IMAGE ----------
-FROM nginx:alpine
+WORKDIR /app
 
-COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
+# Copy only production dependencies and source
+COPY --from=builder --chown=nodejs:nodejs /app ./
 
-# Copy backend app
-COPY --from=backend-builder /app/backend /app/backend
+# Set environment defaults
+ENV NODE_ENV=production
+ENV PORT=4000
 
-# Install node in final image (to run backend)
-RUN apk add --no-cache nodejs npm
+# Switch to non-root user
+USER nodejs
 
-# Copy nginx config 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Expose backend port
+EXPOSE 4000
 
-EXPOSE 80
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:4000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
 
-# Start backend + nginx
-CMD sh -c "PORT=4000 node /app/backend/server.js & nginx -g 'daemon off;'"
+# Start the backend
+CMD ["node", "server.js"]
