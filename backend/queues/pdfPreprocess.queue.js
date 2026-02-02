@@ -12,7 +12,6 @@
 import { Queue } from "bullmq";
 import RedisClient from "../redis/redis.js";
 
-// Get producer-style connection (fail fast)
 const redisInstance = RedisClient.getInstance();
 const producerConnection = redisInstance.createNewConnection();
 
@@ -34,8 +33,6 @@ export const pdfPreprocessQueue = new Queue("pdf-preprocess", {
 /**
  * Enqueue a PDF for preprocessing.
  * Uses pdfId as jobId to prevent duplicate jobs.
- * Silently ignores "Job already exists" errors (expected for deduplication).
- * 
  * @param {string} pdfId - MongoDB ObjectId of the PDF document
  */
 export async function enqueuePdfPreprocess(pdfId) {

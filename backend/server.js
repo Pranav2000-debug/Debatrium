@@ -9,12 +9,15 @@ const port = process.env.PORT || 8080;
 
 const redisClient = RedisClient.getInstance();
 let server;
-let pdfPreprocessWorker; // Store worker reference for graceful shutdown
+let pdfPreprocessWorker;
 
 connectDB()
   .then(async () => {
-    // Import worker AFTER MongoDB connects (starts automatically)
-    // This ensures DB is ready before worker processes jobs
+    // Recover stuck PDFs before worker starts
+    const { recoverOrphanedPdfs } = await import("./utils/recoverOrphanedPdfs.js");
+    await recoverOrphanedPdfs();
+
+    // Start worker after DB is ready
     const workerModule = await import("./workers/pdfPreprocess.worker.js");
     pdfPreprocessWorker = workerModule.pdfPreprocessWorker;
 
@@ -29,12 +32,10 @@ connectDB()
     process.exit(1);
   });
 
-// Graceful shutdown function
 async function gracefulShutdown(signal) {
   console.log(`\n ${signal} received. Shutting down gracefully...`);
 
   try {
-    // Close server first (stop accepting new requests)
     await new Promise((res, rej) => {
       server.close((err) => {
         if (err) return rej(err);
@@ -43,22 +44,18 @@ async function gracefulShutdown(signal) {
       });
     });
 
-    // Close BullMQ worker (waits for current job to finish)
     if (pdfPreprocessWorker) {
       await pdfPreprocessWorker.close();
       console.log("PDF preprocessing worker closed");
     }
 
-    // Close BullMQ queue
     const { pdfPreprocessQueue } = await import("./queues/pdfPreprocess.queue.js");
     await pdfPreprocessQueue.close();
     console.log("PDF preprocessing queue closed");
 
-    // Close Redis connection
     await redisClient.disconnect();
     console.log("Redis connection closed");
 
-    // Close MongoDB connection
     await mongoose.connection.close();
     console.log("MongoDB connection closed");
 
@@ -70,18 +67,16 @@ async function gracefulShutdown(signal) {
   }
 }
 
-// Handle different termination signals
-process.on("SIGINT", () => gracefulShutdown("SIGINT")); // Ctrl+C
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM")); // Kill command
-process.on("SIGUSR2", () => gracefulShutdown("SIGUSR2")); // Nodemon restart
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGUSR2", () => gracefulShutdown("SIGUSR2"));
 
-// Handle uncaught errors
 process.on("uncaughtException", (error) => {
-  console.error("❌ Uncaught Exception:", error);
+  console.error("x Uncaught Exception:", error);
   gracefulShutdown("uncaughtException");
 });
 
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
+  console.error("x Unhandled Rejection at:", promise, "reason:", reason);
   gracefulShutdown("unhandledRejection");
 });

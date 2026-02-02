@@ -20,14 +20,27 @@ export default class RedisClient {
       enableReadyCheck: false,
     });
 
+    // Track if this is initial connect vs reconnect
+    let isFirstConnect = true;
+
     this.#sharedWorkerClient.on("connect", () => {
       console.log(`Redis worker client connected to ${REDIS_HOST}:${REDIS_PORT}`);
     });
     this.#sharedWorkerClient.on("ready", () => {
       console.log("Redis worker client ready");
+
+      // On reconnect (not first connect), recover orphaned PDFs
+      // Redis data may have been lost during the disconnect
+      if (!isFirstConnect) {
+        console.log("Redis reconnected - triggering orphaned PDF recovery...");
+        import("../utils/recoverOrphanedPdfs.js")
+          .then(({ recoverOrphanedPdfs }) => recoverOrphanedPdfs())
+          .catch((err) => console.error("Recovery failed:", err.message));
+      }
+      isFirstConnect = false;
     });
     this.#sharedWorkerClient.on("error", (err) => {
-      console.error("❌ Redis error:", err.message);
+      console.error("x Redis error:", err.message);
     });
     this.#sharedWorkerClient.on("close", () => {
       console.log("Redis connection closed");
@@ -45,7 +58,7 @@ export default class RedisClient {
     return this.#sharedWorkerClient;
   }
 
-  // BullMQ recommends separate connections for Queue and Worker
+  // separate connections for Queue and Worker
   createNewConnection() {
     return new Redis({
       host: REDIS_HOST,
