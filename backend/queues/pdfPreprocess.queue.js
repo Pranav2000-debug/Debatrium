@@ -26,8 +26,8 @@ export const pdfPreprocessQueue = new Queue("pdf-preprocess", {
       delay: 3000, // Start with 3s, then 6s, then 12s
     },
     timeout: 1000 * 60 * 1, // 60 seconds
-    removeOnComplete: 100, // Keep last 100 completed jobs for debugging
-    removeOnFail: 200, // Keep last 200 failed jobs for debugging
+    removeOnComplete: 10, // Keep last 100 completed jobs for debugging
+    removeOnFail: 20, // Keep last 200 failed jobs for debugging
   },
 });
 
