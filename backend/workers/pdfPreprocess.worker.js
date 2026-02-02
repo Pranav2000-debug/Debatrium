@@ -28,18 +28,15 @@ import { chunkText } from "../utils/chunkText.js";
 const redisInstance = RedisClient.getInstance();
 const workerConnection = redisInstance.getClient();
 
-/**
- * Helper for permanent (non-retryable) failures.
- * DESIGN RULE: Throw = transient (retry), Return = terminal (no retry)
- */
+
+// Helper for permanent (non-retryable) failures.
+// Throw = transient (retry), Return = terminal (no retry)
 function permanentFailure(reason) {
   return { status: "failed", reason };
 }
 
 
-/**
- * Mark PDF as permanently failed.
- */
+// Mark PDF as permanently failed.
 async function markAsFailed(pdfId) {
   await Pdf.updateOne(
     { _id: pdfId, preprocessStatus: { $ne: "completed" } },
@@ -47,9 +44,9 @@ async function markAsFailed(pdfId) {
   );
 }
 
-/**
- * Main processor function for PDF preprocessing.
- */
+
+// Main processor function for PDF preprocessing.
+
 async function processPdfPreprocess(job) {
   const { pdfId } = job.data;
   console.log(`Processing PDF: ${pdfId}`);
@@ -139,7 +136,7 @@ async function processPdfPreprocess(job) {
     } catch (err) {
       // E11000 = duplicate key error (user already has PDF with same contentHash)
       // CLEANUP: Delete duplicate PDF entirely - it's redundant data
-      // Why delete instead of marking failed:
+      // delete instead of marking failed:
       // - A failed PDF with no contentHash stays in DB forever
       // - User already has the same content in another PDF
       // - Cleaner to remove orphan record + Cloudinary file
@@ -165,7 +162,7 @@ async function processPdfPreprocess(job) {
     job.updateProgress(75);
 
     // 9. Create chunks (crash-safe idempotent)
-    // WHY NO existingChunks CHECK:
+    // why no existingChunks CHECK:
     // - Partial inserts can occur if worker crashes mid-write
     // - On retry, existingChunks > 0 would skip remaining chunks - data loss
     // - Instead, we always attempt insertMany with ordered: false
@@ -205,7 +202,7 @@ async function processPdfPreprocess(job) {
 
     job.updateProgress(90);
 
-    // 10. Mark as completed (AFTER chunks - crash-safety)
+    // 10. Mark as completed (after chunks - crash-safety)
     // If worker crashes before this, status stays "processing" and retry redoes everything
     await Pdf.updateOne(
       { _id: pdfId },
@@ -228,7 +225,12 @@ async function processPdfPreprocess(job) {
 const pdfPreprocessWorker = new Worker(
   "pdf-preprocess",
   processPdfPreprocess,
-  { connection: workerConnection, concurrency: 2 }
+  {
+    connection: workerConnection,
+    concurrency: 2,
+    stalledInterval: 30000,   // Check for stalled jobs every 30s (read bullmq docs for more clarity)
+    maxStalledCount: 2        // Retry stalled up to 2 times, then mark failed
+  }
 );
 
 pdfPreprocessWorker.on("completed", async (job, result) => {
@@ -263,6 +265,10 @@ pdfPreprocessWorker.on("failed", async (job, err) => {
 
 pdfPreprocessWorker.on("progress", (job, progress) => {
   console.log(`Job ${job.id} progress: ${progress}%`);
+});
+
+pdfPreprocessWorker.on("stalled", (jobId) => {
+  console.warn(`!! Job ${jobId} stalled - will be retried`);
 });
 
 pdfPreprocessWorker.on("error", (err) => {

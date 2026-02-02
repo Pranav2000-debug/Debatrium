@@ -6,17 +6,14 @@ import { ApiError, ApiResponse, asyncHandler } from "../utils/utilBarrel.js";
 import { enqueuePdfPreprocess, pdfPreprocessQueue } from "../queues/pdfPreprocess.queue.js";
 import { PdfChunk } from "../models/pdfChunk.model.js";
 
-/**
- * Safely delete local uploaded file (disk storage cleanup)
- */
+
 const safeUnlink = (filePath) => {
   if (!filePath) return;
   fs.unlink(filePath, () => { });
 };
 
 // ==============================
-// UPLOAD PDF CONTROLLER
-// ==============================
+// UPLOAD PDF CONTROLLER:-
 // RESPONSIBILITIES:
 // - Upload PDF to Cloudinary
 // - Create PDF document with preprocessStatus: "pending"
@@ -99,7 +96,7 @@ export const uploadPdfController = asyncHandler(async (req, res) => {
     }, "Upload successful, preprocessing started")
   );
 
-  // Fire-and-forget: enqueue in background
+  // - enqueue in background
   // - DB is source of truth (preprocessStatus: "pending")
   // - If enqueue fails, PDF stays "pending" (can re-enqueue later)
   // - Worker is idempotent (handles duplicates)
@@ -109,7 +106,6 @@ export const uploadPdfController = asyncHandler(async (req, res) => {
       await enqueuePdfPreprocess(pdfDoc._id);
     } catch (err) {
       console.error(`Failed to enqueue preprocessing for ${pdfDoc._id}: ${err.message}`);
-      // PDF stays in "pending" state - can be recovered via admin or cron
     }
   });
 });
@@ -127,18 +123,16 @@ export const deletePdf = asyncHandler(async (req, res) => {
     throw new ApiError(404, "PDF not found, cannot delete");
   }
 
-  // ========================================
-  // Set deletion marker BEFORE job removal
+
+  // Set deletion marker before job removal
   // This signals the worker to abort chunk inserts if still processing
-  // ========================================
+
   await Pdf.updateOne(
     { _id: pdf._id },
     { $set: { preprocessStatus: "deleting" } }
   );
 
-  // ========================================
   // Best-effort job removal from queue
-  // ========================================
   try {
     const jobId = pdf._id.toString();
     const job = await pdfPreprocessQueue.getJob(jobId);
