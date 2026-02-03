@@ -87,12 +87,8 @@ if (cluster.isPrimary) {
         });
       }
 
-      // 2. Signal worker to shutdown and wait
       if (worker && !worker.isDead()) {
         console.log("Signaling worker to shutdown...");
-        worker.send({ type: "shutdown" });
-
-        // Wait for worker to exit (max 30 seconds)
         await new Promise((resolve) => {
           const timeout = setTimeout(() => {
             console.log("Worker shutdown timeout, forcing...");
@@ -100,10 +96,11 @@ if (cluster.isPrimary) {
             resolve();
           }, 30000);
 
-          worker.on("exit", () => {
+          worker.once("exit", () => {
             clearTimeout(timeout);
             resolve();
           });
+          worker.send({ type: "shutdown" });
         });
       }
 

@@ -37,6 +37,17 @@ async function startWorker() {
     // 2. Initialize Redis singleton (creates own connection in this process)
     const redisClient = RedisClient.getInstance();
 
+    // Listen for Redis reconnection to recover orphaned PDFs
+    redisClient.on("reconnect", async () => {
+      console.log("Worker: Redis reconnected - triggering recovery...");
+      try {
+        const { recoverOrphanedPdfs } = await import("./utils/recoverOrphanedPdfs.js");
+        await recoverOrphanedPdfs();
+      } catch (error) {
+        console.error("Worker: Recovery failed during reconnect:", error.message);
+      }
+    });
+
     // 3. Recover orphaned PDFs before starting worker (best-effort)
     try {
       const { recoverOrphanedPdfs } = await import("./utils/recoverOrphanedPdfs.js");

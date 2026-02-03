@@ -4,12 +4,15 @@ import Redis from "ioredis";
 const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
 const REDIS_PORT = parseInt(process.env.REDIS_PORT, 10) || 6379;
 
+import { EventEmitter } from "events";
+
 const PRIVATE_REDIS_KEY = Symbol("redis_class_key");
-export default class RedisClient {
+export default class RedisClient extends EventEmitter {
   static #instance = null;
   #sharedWorkerClient = null;
 
   constructor(key) {
+    super();
     if (key !== PRIVATE_REDIS_KEY) throw new Error("Cannot create new instance");
     if (RedisClient.#instance) throw new Error("Use RedisClient.getInstance()");
 
@@ -29,13 +32,10 @@ export default class RedisClient {
     this.#sharedWorkerClient.on("ready", () => {
       console.log("Redis worker client ready");
 
-      // On reconnect (not first connect), recover orphaned PDFs
-      // Redis data may have been lost during the disconnect
+      // On reconnect (not first connect), emit event for recovery
       if (!isFirstConnect) {
-        console.log("Redis reconnected - triggering orphaned PDF recovery...");
-        import("../utils/recoverOrphanedPdfs.js")
-          .then(({ recoverOrphanedPdfs }) => recoverOrphanedPdfs())
-          .catch((err) => console.error("Recovery failed:", err.message));
+        console.log("Redis reconnected - emitting reconnect event...");
+        this.emit("reconnect");
       }
       isFirstConnect = false;
     });
