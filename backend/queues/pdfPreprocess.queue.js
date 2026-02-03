@@ -12,9 +12,8 @@
 import { Queue } from "bullmq";
 import RedisClient from "../redis/redis.js";
 
-// Get producer-style connection (fail fast)
-const redisInstance = RedisClient.getInstance();
-const producerConnection = redisInstance.createNewConnection();
+// Get producer-style connection (fail fast) - static method, no singleton needed
+const producerConnection = RedisClient.createConnection();
 
 // Create the queue with producer connection
 export const pdfPreprocessQueue = new Queue("pdf-preprocess", {
@@ -26,8 +25,8 @@ export const pdfPreprocessQueue = new Queue("pdf-preprocess", {
       delay: 3000, // Start with 3s, then 6s, then 12s
     },
     timeout: 1000 * 60 * 1, // 60 seconds
-    removeOnComplete: 10, // Keep last 100 completed jobs for debugging
-    removeOnFail: 20, // Keep last 200 failed jobs for debugging
+    removeOnComplete: 100, // Keep last 100 completed jobs for debugging
+    removeOnFail: 200, // Keep last 200 failed jobs for debugging
   },
 });
 

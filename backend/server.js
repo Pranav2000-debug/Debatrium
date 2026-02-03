@@ -23,10 +23,9 @@ const __dirname = path.dirname(__filename);
  * - Receives shutdown signal from primary via IPC
  */
 
+// PRIMARY PROCESS - HTTP Server + Worker Manager
+
 if (cluster.isPrimary) {
-  // ============================================
-  // PRIMARY PROCESS - HTTP Server + Worker Manager
-  // ============================================
 
   const mongoose = await import("mongoose");
   const { default: app } = await import("./app.js");
@@ -141,26 +140,18 @@ if (cluster.isPrimary) {
 
   // Handle uncaught errors
   process.on("uncaughtException", (error) => {
-    console.error("❌ Uncaught Exception:", error);
+    console.error("Uncaught Exception:", error);
     gracefulShutdown("uncaughtException");
   });
 
   process.on("unhandledRejection", (reason, promise) => {
-    console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
+    console.error("Unhandled Rejection at:", promise, "reason:", reason);
     gracefulShutdown("unhandledRejection");
   });
 
   // Start the server
   try {
     await connectDB();
-
-    // Recover orphaned PDFs (best-effort, non-blocking)
-    try {
-      const { recoverOrphanedPdfs } = await import("./utils/recoverOrphanedPdfs.js");
-      await recoverOrphanedPdfs();
-    } catch (error) {
-      console.error("recoverOrphanedPdfs failed, continuing startup:", error);
-    }
 
     server = app.listen(port, () => {
       console.log(`Server running on http://localhost:${port}`);
@@ -177,10 +168,9 @@ if (cluster.isPrimary) {
   }
 
 } else {
-  // ============================================
-  // WORKER PROCESS - Delegated to workerEntry.js
-  // ============================================
 
+  // WORKER PROCESS - Delegated to workerEntry.js
   // Dynamic import to keep worker code separate
+
   await import("./workerEntry.js");
 }

@@ -79,6 +79,7 @@ export const getPdfStatus = asyncHandler(async (req, res) => {
     { preprocessStatus: 1, status: 1 }
   ).lean();
 
+  // if not found, could also be due to deletion.
   if (!pdf) {
     throw new ApiError(404, "PDF not found");
   }

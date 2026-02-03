@@ -37,7 +37,15 @@ async function startWorker() {
     // 2. Initialize Redis singleton (creates own connection in this process)
     const redisClient = RedisClient.getInstance();
 
-    // 3. Import and start BullMQ worker
+    // 3. Recover orphaned PDFs before starting worker (best-effort)
+    try {
+      const { recoverOrphanedPdfs } = await import("./utils/recoverOrphanedPdfs.js");
+      await recoverOrphanedPdfs();
+    } catch (error) {
+      console.error("Worker: recoverOrphanedPdfs failed, continuing:", error.message);
+    }
+
+    // 4. Import and start BullMQ worker
     const workerModule = await import("./workers/pdfPreprocess.worker.js");
     pdfPreprocessWorker = workerModule.pdfPreprocessWorker;
 
