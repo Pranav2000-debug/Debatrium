@@ -12,9 +12,8 @@
 import { Queue } from "bullmq";
 import RedisClient from "../redis/redis.js";
 
-// Get producer-style connection (fail fast)
-const redisInstance = RedisClient.getInstance();
-const producerConnection = redisInstance.createNewConnection();
+// Get producer-style connection (fail fast) - static method, no singleton needed
+const producerConnection = RedisClient.createConnection();
 
 // Create the queue with producer connection
 export const pdfPreprocessQueue = new Queue("pdf-preprocess", {

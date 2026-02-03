@@ -4,12 +4,15 @@ import Redis from "ioredis";
 const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
 const REDIS_PORT = parseInt(process.env.REDIS_PORT, 10) || 6379;
 
+import { EventEmitter } from "events";
+
 const PRIVATE_REDIS_KEY = Symbol("redis_class_key");
-export default class RedisClient {
+export default class RedisClient extends EventEmitter {
   static #instance = null;
   #sharedWorkerClient = null;
 
   constructor(key) {
+    super();
     if (key !== PRIVATE_REDIS_KEY) throw new Error("Cannot create new instance");
     if (RedisClient.#instance) throw new Error("Use RedisClient.getInstance()");
 
@@ -20,14 +23,24 @@ export default class RedisClient {
       enableReadyCheck: false,
     });
 
+    // Track if this is initial connect vs reconnect
+    let isFirstConnect = true;
+
     this.#sharedWorkerClient.on("connect", () => {
       console.log(`Redis worker client connected to ${REDIS_HOST}:${REDIS_PORT}`);
     });
     this.#sharedWorkerClient.on("ready", () => {
       console.log("Redis worker client ready");
+
+      // On reconnect (not first connect), emit event for recovery
+      if (!isFirstConnect) {
+        console.log("Redis reconnected - emitting reconnect event...");
+        this.emit("reconnect");
+      }
+      isFirstConnect = false;
     });
     this.#sharedWorkerClient.on("error", (err) => {
-      console.error("❌ Redis error:", err.message);
+      console.error("x Redis error:", err.message);
     });
     this.#sharedWorkerClient.on("close", () => {
       console.log("Redis connection closed");
@@ -45,8 +58,9 @@ export default class RedisClient {
     return this.#sharedWorkerClient;
   }
 
-  // BullMQ recommends separate connections for Queue and Worker
-  createNewConnection() {
+  // Static method for creating separate connections (e.g., for BullMQ Queue)
+  // Does not require singleton instantiation
+  static createConnection() {
     return new Redis({
       host: REDIS_HOST,
       port: REDIS_PORT,
