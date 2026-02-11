@@ -26,7 +26,7 @@ export async function generateDebateAnalysis({ text }) {
 
   try {
     const response = await genAI.models.generateContent({
-      model: "gemini-3-pro-preview",
+      model: "gemini-2.5-flash",
       contents: finalPrompt,
       config: {
         thinkingConfig: { thinkingBudget: -1 },
